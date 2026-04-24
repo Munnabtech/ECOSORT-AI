@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: '--font-jakarta' });
 
 export const metadata: Metadata = {
   title: 'EcoSort - AI-Powered Waste Classification',
@@ -46,8 +47,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-white">
-      <body className="font-sans antialiased">
+    <html lang="en" className={`bg-background ${_plusJakartaSans.variable}`}>
+      <head>
+        <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4"></script>
+        <script async src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8"></script>
+      </head>
+      <body className="font-jakarta antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
