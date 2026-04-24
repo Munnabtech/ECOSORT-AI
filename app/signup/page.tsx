@@ -270,13 +270,13 @@ export default function Signup() {
               />
               <label className="text-sm text-gray-600 cursor-pointer">
                 I agree to the{' '}
-                <a href="#" className="text-green-600 font-semibold hover:underline">
+                <Link href="/" className="text-green-600 font-semibold hover:underline">
                   Terms of Service
-                </a>{' '}
+                </Link>{' '}
                 and{' '}
-                <a href="#" className="text-green-600 font-semibold hover:underline">
+                <Link href="/" className="text-green-600 font-semibold hover:underline">
                   Privacy Policy
-                </a>
+                </Link>
               </label>
             </motion.div>
             {errors.terms && (

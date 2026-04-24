@@ -37,10 +37,10 @@ export default function Dashboard() {
   const [activeNav, setActiveNav] = useState('home')
 
   const navItems = [
-    { id: 'home', label: 'Overview', icon: Home, href: '#' },
+    { id: 'home', label: 'Overview', icon: Home, href: '/dashboard' },
     { id: 'scan', label: 'Scan Item', icon: Camera, href: '/scan' },
-    { id: 'history', label: 'History', icon: FileText, href: '#' },
-    { id: 'reports', label: 'Reports', icon: BarChart3, href: '#' },
+    { id: 'history', label: 'History', icon: FileText, href: '/history' },
+    { id: 'reports', label: 'Reports', icon: BarChart3, href: '/reports' },
     { id: 'complaints', label: 'File Complaint', icon: AlertCircle, href: '/complaint' },
     { id: 'contact', label: 'Contact Support', icon: Mail, href: '/contact' },
   ]

@@ -139,9 +139,12 @@ export default function Home() {
                 Start Sorting Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="px-8 py-4 bg-gray-100 text-gray-900 rounded-full font-semibold text-lg hover:bg-gray-200 transition-all">
-                Watch Demo
-              </button>
+              <Link
+                href="/blog"
+                className="px-8 py-4 bg-gray-100 text-gray-900 rounded-full font-semibold text-lg hover:bg-gray-200 transition-all"
+              >
+                Learn More
+              </Link>
             </motion.div>
           </motion.div>
 
@@ -377,24 +380,24 @@ export default function Home() {
             <div>
               <h4 className="font-bold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-green-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-green-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-green-400 transition-colors">Security</a></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">Features</Link></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">Pricing</Link></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">Security</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Company</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-green-400 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-green-400 transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-green-400 transition-colors">Contact</a></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">About</Link></li>
+                <li><Link href="/blog" className="hover:text-green-400 transition-colors">Blog</Link></li>
+                <li><Link href="/contact" className="hover:text-green-400 transition-colors">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-green-400 transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-green-400 transition-colors">Terms</a></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">Privacy</Link></li>
+                <li><Link href="/" className="hover:text-green-400 transition-colors">Terms</Link></li>
               </ul>
             </div>
           </div>
