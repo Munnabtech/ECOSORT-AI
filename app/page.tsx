@@ -13,147 +13,139 @@ import Toast from '@/components/Toast'
 
 export interface ScanResult {
   id: string
-  timestamp: Date
   type: string
   confidence: number
-  recyclable: boolean
-  tips: string[]
+  timestamp: string
+  tips: string
 }
 
 export default function Home() {
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'dashboard' | 'scan' | 'result' | 'history' | 'report' | 'contact' | 'team'>('login')
+  const [screen, setScreen] = useState<'login' | 'dashboard' | 'scan' | 'result' | 'history' | 'report' | 'contact' | 'team'>('login')
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
-  const [selectedType, setSelectedType] = useState('')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userName, setUserName] = useState('')
   const [scans, setScans] = useState<ScanResult[]>([])
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [userName, setUserName] = useState('Alex')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; icon: string } | null>(null)
+  const [aiStatus, setAiStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  
   const modelRef = useRef<any>(null)
-  const webcamRef = useRef<any>(null)
+  const isModelLoading = useRef(false)
 
   // Load ML model on mount
   useEffect(() => {
+    if (isModelLoading.current) return
+    isModelLoading.current = true
+
     const loadModel = async () => {
       try {
-        const script = document.querySelector('script[src*="teachablemachine"]')
-        if (!script?.hasAttribute('data-loaded')) {
-          await new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-              if (typeof (window as any).tmImage !== 'undefined') {
-                clearInterval(checkInterval)
-                resolve(true)
-              }
-            }, 100)
-            setTimeout(() => clearInterval(checkInterval), 5000)
-          })
-        }
+        await new Promise(resolve => {
+          const checkInterval = setInterval(() => {
+            if (typeof (window as any).tmImage !== 'undefined' && typeof (window as any).tf !== 'undefined') {
+              clearInterval(checkInterval)
+              resolve(true)
+            }
+          }, 100)
+          setTimeout(() => clearInterval(checkInterval), 5000)
+        })
 
         const tm = (window as any).tmImage
         if (tm && !modelRef.current) {
-          const URL = 'https://teachablemachine.withgoogle.com/models/sMXkD-kDf/'
-          const modelURL = URL + 'model.json'
-          const metadataURL = URL + 'metadata.json'
+          const modelURL = 'https://teachablemachine.withgoogle.com/models/-1r1FYZ48/model.json'
+          const metadataURL = 'https://teachablemachine.withgoogle.com/models/-1r1FYZ48/metadata.json'
           const model = await tm.load(modelURL, metadataURL)
           modelRef.current = model
+          setAiStatus('ready')
         }
       } catch (error) {
-        console.log('[v0] Model load attempted (may fail if libraries unavailable)')
+        console.log('[v0] Model load note - libraries may not be available in preview')
+        setAiStatus('error')
       }
     }
 
     loadModel()
-
-    return () => {
-      if (modelRef.current) {
-        modelRef.current.dispose()
-      }
-    }
   }, [])
+
+  const showToast = (message: string, type: 'success' | 'error', icon: string = '✓') => {
+    setToast({ message, type, icon })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const handleLogin = (name: string) => {
     setUserName(name)
     setIsLoggedIn(true)
-    setCurrentScreen('dashboard')
-    showToast(`Welcome ${name}!`, 'success')
+    setScreen('dashboard')
+    showToast(`Welcome ${name}!`, 'success', '👋')
   }
 
   const handleLogout = () => {
     setIsLoggedIn(false)
     setUserName('')
-    setCurrentScreen('login')
+    setScreen('login')
     setScans([])
-    showToast('Logged out successfully', 'success')
-  }
-
-  const handleScan = (result: ScanResult) => {
-    setScanResult(result)
-    setScans([result, ...scans])
-    setCurrentScreen('result')
-    showToast('Scan completed!', 'success')
-  }
-
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    showToast('Logged out successfully', 'success', '👋')
   }
 
   const renderScreen = () => {
-    switch (currentScreen) {
+    switch (screen) {
       case 'login':
-        return <LoginScreen onLogin={handleLogin} setScreen={setCurrentScreen} />
+        return <LoginScreen onLogin={handleLogin} setScreen={setScreen} />
       case 'dashboard':
         return (
           <DashboardScreen
             userName={userName}
             scansCount={scans.length}
-            setScreen={setCurrentScreen}
+            setScreen={setScreen}
             onLogout={handleLogout}
           />
         )
       case 'scan':
         return (
           <ScanScreen
-            setScreen={setCurrentScreen}
-            onScan={handleScan}
+            setScreen={setScreen}
+            setScanResult={setScanResult}
+            setScans={setScans}
+            scans={scans}
             modelRef={modelRef}
+            aiStatus={aiStatus}
+            showToast={showToast}
           />
         )
       case 'result':
         return (
           <ResultScreen
             result={scanResult}
-            setScreen={setCurrentScreen}
-            onNewScan={() => setCurrentScreen('scan')}
+            setScreen={setScreen}
           />
         )
       case 'history':
         return (
           <HistoryScreen
             scans={scans}
-            setScreen={setCurrentScreen}
+            setScreen={setScreen}
+            setScanResult={setScanResult}
           />
         )
       case 'report':
         return (
           <ReportScreen
-            scans={scans}
-            setScreen={setCurrentScreen}
+            setScreen={setScreen}
+            showToast={showToast}
           />
         )
       case 'contact':
-        return <ContactScreen setScreen={setCurrentScreen} showToast={showToast} />
+        return <ContactScreen setScreen={setScreen} showToast={showToast} />
       case 'team':
-        return <TeamScreen setScreen={setCurrentScreen} />
+        return <TeamScreen setScreen={setScreen} />
       default:
         return null
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {renderScreen()}
       {toast && (
-        <Toast message={toast.message} type={toast.type} />
+        <Toast message={toast.message} type={toast.type} icon={toast.icon} />
       )}
     </div>
   )

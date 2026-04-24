@@ -1,222 +1,167 @@
+'use client'
+
 import { useState, useRef, useEffect } from 'react'
-import { Camera, RotateCcw, Zap } from 'lucide-react'
+import { Upload, X, Zap } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 import type { ScanResult } from '@/app/page'
 
 interface ScanScreenProps {
   setScreen: (screen: string) => void
-  onScan: (result: ScanResult) => void
+  setScanResult: (result: ScanResult) => void
+  setScans: (scans: ScanResult[]) => void
+  scans: ScanResult[]
   modelRef: React.MutableRefObject<any>
+  aiStatus: 'loading' | 'ready' | 'error'
+  showToast: (msg: string, type: 'success' | 'error', icon: string) => void
 }
 
-export default function ScanScreen({ setScreen, onScan, modelRef }: ScanScreenProps) {
-  const [isScanning, setIsScanning] = useState(false)
-  const [useCamera, setUseCamera] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+const wasteTypes = [
+  { name: 'Plastic', icon: '🧴', color: 'from-blue-500 to-cyan-500' },
+  { name: 'Paper', icon: '📄', color: 'from-yellow-500 to-orange-500' },
+  { name: 'Metal', icon: '🥫', color: 'from-gray-500 to-slate-500' },
+  { name: 'Glass', icon: '🔴', color: 'from-green-500 to-teal-500' },
+  { name: 'Organic', icon: '🍃', color: 'from-green-500 to-emerald-500' },
+  { name: 'E-Waste', icon: '💡', color: 'from-purple-500 to-pink-500' },
+]
+
+export default function ScanScreen({
+  setScreen,
+  setScanResult,
+  setScans,
+  scans,
+  modelRef,
+  aiStatus,
+  showToast,
+}: ScanScreenProps) {
+  const [isProcessing, setIsProcessing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [selectedManually, setSelectedManually] = useState(false)
 
-  const wasteTypes = [
-    { name: 'Paper', recyclable: true, icon: '📄' },
-    { name: 'Plastic', recyclable: true, icon: '🧴' },
-    { name: 'Glass', recyclable: true, icon: '🔴' },
-    { name: 'Metal', recyclable: true, icon: '🥫' },
-    { name: 'Organic', recyclable: false, icon: '🍌' },
-    { name: 'Electronics', recyclable: false, icon: '📱' },
-  ]
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  const tips: Record<string, string[]> = {
-    Paper: ['Flatten boxes', 'Keep dry', 'No plastic coating'],
-    Plastic: ['Remove caps', 'Rinse bottles', 'Check #1 or #2'],
-    Glass: ['Rinse clean', 'Remove labels', 'Separate colors'],
-    Metal: ['Crush cans', 'Remove labels', 'Keep dry'],
-    Organic: ['Use compost bin', 'No meat/dairy', 'Break into pieces'],
-    Electronics: ['Find e-waste center', 'Keep dry', 'Extract batteries'],
-  }
+    setIsProcessing(true)
 
-  useEffect(() => {
-    if (useCamera) {
-      startCamera()
-    }
-    return () => {
-      stopCamera()
-    }
-  }, [useCamera])
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const img = new Image()
+      img.onload = async () => {
+        if (canvasRef.current && modelRef.current) {
+          const ctx = canvasRef.current.getContext('2d')
+          canvasRef.current.width = 224
+          canvasRef.current.height = 224
+          ctx?.drawImage(img, 0, 0, 224, 224)
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
-    } catch (error) {
-      console.log('[v0] Camera access denied or unavailable')
-      setUseCamera(false)
-    }
-  }
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-      tracks.forEach(track => track.stop())
-    }
-  }
-
-  const captureAndProcess = async () => {
-    if (!canvasRef.current || !videoRef.current) return
-
-    setIsScanning(true)
-    const ctx = canvasRef.current.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height)
-
-      if (modelRef.current) {
-        try {
-          const predictions = await modelRef.current.predict(canvasRef.current)
-          const bestPrediction = predictions.reduce((best: any, current: any) =>
-            current.probability > best.probability ? current : best
-          )
-
-          const wasteType = bestPrediction.className.split(' ')[0]
-          handleScanComplete(wasteType, bestPrediction.probability)
-        } catch (error) {
-          console.log('[v0] Model prediction failed, using manual fallback')
-          setUseCamera(false)
-          setIsScanning(false)
+          try {
+            const predictions = await modelRef.current.predict(canvasRef.current)
+            const best = predictions.reduce((a: any, b: any) => 
+              a.probability > b.probability ? a : b
+            )
+            const type = best.className.split(' ')[0]
+            const result: ScanResult = {
+              id: Date.now().toString(),
+              type,
+              confidence: Math.round(best.probability * 100) / 100,
+              timestamp: new Date().toLocaleString(),
+              tips: `Proper recycling instructions for ${type}`
+            }
+            setScanResult(result)
+            setScans([result, ...scans])
+            setScreen('result')
+            showToast('Scan completed!', 'success', '✅')
+          } catch (err) {
+            showToast('Detection failed, try manual selection', 'error', '⚠️')
+            setIsProcessing(false)
+          }
         }
-      } else {
-        setUseCamera(false)
-        setIsScanning(false)
       }
+      img.src = event.target?.result as string
     }
+    reader.readAsDataURL(file)
   }
 
-  const handleManualSelection = (type: string) => {
-    handleScanComplete(type, 0.85 + Math.random() * 0.15)
-  }
-
-  const handleScanComplete = (type: string, confidence: number) => {
-    const wasteItem = wasteTypes.find(w => w.name === type) || wasteTypes[0]
-
+  const handleManualSelect = (type: string) => {
     const result: ScanResult = {
       id: Date.now().toString(),
-      timestamp: new Date(),
-      type: wasteItem.name,
-      confidence: parseFloat(confidence.toFixed(3)),
-      recyclable: wasteItem.recyclable,
-      tips: tips[wasteItem.name] || [],
+      type,
+      confidence: 0.92,
+      timestamp: new Date().toLocaleString(),
+      tips: `Proper recycling instructions for ${type}`
     }
-
-    setUseCamera(false)
-    setIsScanning(false)
-    onScan(result)
+    setScanResult(result)
+    setScans([result, ...scans])
+    setScreen('result')
+    showToast('Selection recorded!', 'success', '✅')
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen pb-24 screen-enter">
       {/* Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background px-6 pt-6 pb-8 border-b border-border">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Scan Waste Item</h1>
-          <button
-            onClick={() => setScreen('dashboard')}
-            className="px-4 py-2 hover:bg-muted rounded-xl transition-colors text-foreground"
-          >
-            ✕
-          </button>
+      <div className="glass border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-40">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <button onClick={() => setScreen('dashboard')} className="text-[#6EE7B7]">← Back</button>
+          <h1 className="font-heading font-bold text-[#F0FDF4]">Scan Waste</h1>
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+            aiStatus === 'ready' 
+              ? 'bg-[rgba(34,197,94,0.1)] text-[#22C55E]' 
+              : 'bg-[rgba(255,152,0,0.1)] text-[#FFB74D]'
+          }`}>
+            <span className={aiStatus === 'ready' ? 'animate-pulse' : 'animate-pulse opacity-50'}>●</span>
+            {aiStatus === 'ready' ? 'AI Ready' : 'AI Loading...'}
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Point your camera at the item or select manually
-        </p>
       </div>
 
-      {/* Content */}
-      <div className="px-6 py-8">
-        {!useCamera ? (
-          <>
-            {/* Camera Toggle */}
-            {!selectedManually && (
-              <button
-                onClick={() => setUseCamera(true)}
-                className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 mb-6 transition-all hover:shadow-lg active:scale-95 animate-slideInUp"
-              >
-                <Camera className="w-5 h-5" />
-                Use Camera to Scan
-              </button>
-            )}
+      <div className="px-4 py-6">
+        {/* Upload Zone */}
+        <div className="glass-thick rounded-2xl p-8 border-2 border-dashed border-[rgba(34,197,94,0.3)] glow-green-lg text-center mb-8 cursor-pointer hover:border-[rgba(34,197,94,0.6)] transition-all group"
+          onClick={() => fileInputRef.current?.click()}>
+          <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📷</div>
+          <p className="text-[#F0FDF4] font-semibold mb-1">Drop your waste image here</p>
+          <p className="text-[#6EE7B7] text-sm mb-4">or tap to upload</p>
+          <button className="btn-primary text-sm">Choose Image</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </div>
 
-            {/* Manual Selection */}
-            <div>
-              <p className="text-sm font-semibold text-foreground mb-4">Or select manually:</p>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {wasteTypes.map(type => (
-                  <button
-                    key={type.name}
-                    onClick={() => {
-                      setSelectedManually(true)
-                      handleManualSelection(type.name)
-                    }}
-                    disabled={isScanning}
-                    className="p-4 bg-card border-2 border-border rounded-2xl text-center transition-all hover:border-primary hover:bg-primary/5 active:scale-95 disabled:opacity-50"
-                  >
-                    <div className="text-2xl mb-1">{type.icon}</div>
-                    <p className="font-medium text-foreground text-sm">{type.name}</p>
-                    {type.recyclable && (
-                      <p className="text-xs text-primary mt-1">♻️ Recyclable</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Camera Preview */}
-            <div className="mb-6 rounded-2xl overflow-hidden border-2 border-primary bg-black aspect-video flex items-center justify-center relative animate-scaleIn">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Hidden Canvas */}
-            <canvas ref={canvasRef} className="hidden" width="224" height="224" />
-
-            {/* Capture Button */}
-            <button
-              onClick={captureAndProcess}
-              disabled={isScanning}
-              className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 mb-3 transition-all hover:shadow-lg active:scale-95 disabled:opacity-50"
-            >
-              {isScanning ? (
-                <>
-                  <Zap className="w-5 h-5 animate-pulse" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Camera className="w-5 h-5" />
-                  Capture Photo
-                </>
-              )}
-            </button>
-
-            {/* Cancel Button */}
-            <button
-              onClick={() => setUseCamera(false)}
-              className="w-full px-6 py-3 bg-card border border-border text-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all"
-            >
-              <RotateCcw className="w-5 h-5" />
-              Back
-            </button>
-          </>
+        {isProcessing && (
+          <div className="glass rounded-2xl p-4 text-center mb-6 glow-green">
+            <Zap className="w-6 h-6 text-[#22C55E] mx-auto mb-2 animate-pulse" />
+            <p className="text-[#F0FDF4] font-semibold">🤖 AI is scanning...</p>
+          </div>
         )}
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1 h-px bg-[rgba(34,197,94,0.2)]" />
+          <span className="text-[#6EE7B7] text-xs">or select type manually</span>
+          <div className="flex-1 h-px bg-[rgba(34,197,94,0.2)]" />
+        </div>
+
+        {/* Manual Selection */}
+        <p className="section-label mb-4">Waste Types</p>
+        <div className="grid grid-cols-3 gap-3">
+          {wasteTypes.map((type) => (
+            <button
+              key={type.name}
+              onClick={() => handleManualSelect(type.name)}
+              disabled={isProcessing}
+              className="glass rounded-xl p-3 text-center group hover:border-[#22C55E] hover:shadow-[0_0_16px_rgba(34,197,94,0.4)] transition-all disabled:opacity-50"
+            >
+              <div className="text-2xl mb-1 group-hover:scale-125 transition-transform">{type.icon}</div>
+              <p className="text-[#F0FDF4] font-semibold text-xs">{type.name}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
+      <canvas ref={canvasRef} className="hidden" />
       <BottomNav currentScreen="scan" setScreen={setScreen} />
     </div>
   )

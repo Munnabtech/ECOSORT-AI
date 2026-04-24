@@ -1,11 +1,22 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
+import { DM_Sans, JetBrains_Mono, Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
-const _plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: '--font-jakarta' });
+const syne = Syne({ 
+  subsets: ["latin"],
+  variable: '--font-heading'
+});
+
+const dmSans = DM_Sans({ 
+  subsets: ["latin"],
+  variable: '--font-sans'
+});
+
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ["latin"],
+  variable: '--font-mono'
+});
 
 export const metadata: Metadata = {
   title: 'EcoSort - AI-Powered Waste Classification',
@@ -47,12 +58,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`bg-background ${_plusJakartaSans.variable}`}>
+    <html lang="en" className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4"></script>
-        <script async src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8"></script>
+        <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+        <script async src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
       </head>
-      <body className="font-jakarta antialiased">
+      <body className="antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

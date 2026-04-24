@@ -1,27 +1,23 @@
-import { useEffect } from 'react'
-import { CheckCircle2, AlertCircle, X } from 'lucide-react'
+'use client'
 
 interface ToastProps {
   message: string
   type: 'success' | 'error'
+  icon: string
 }
 
-export default function Toast({ message, type }: ToastProps) {
+export default function Toast({ message, type, icon }: ToastProps) {
   return (
-    <div className="fixed top-4 left-4 right-4 max-w-sm mx-auto z-50 animate-slideInDown">
+    <div className="fixed top-6 left-6 right-6 max-w-sm z-50 toast-enter">
       <div
-        className={`rounded-2xl p-4 flex items-center gap-3 shadow-lg border ${
+        className={`glass rounded-2xl p-4 flex items-center gap-3 glow-green ${
           type === 'success'
-            ? 'bg-primary text-primary-foreground border-primary/30'
-            : 'bg-destructive text-destructive-foreground border-destructive/30'
+            ? 'border-[rgba(34,197,94,0.4)]'
+            : 'border-[rgba(248,113,113,0.4)]'
         }`}
       >
-        {type === 'success' ? (
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-        ) : (
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-        )}
-        <p className="text-sm font-medium flex-1">{message}</p>
+        <span className="text-2xl flex-shrink-0">{icon}</span>
+        <p className="text-sm font-medium text-[#F0FDF4] flex-1">{message}</p>
       </div>
     </div>
   )

@@ -1,101 +1,118 @@
+'use client'
+
 import { useState } from 'react'
-import { Send } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 
 interface ContactScreenProps {
   setScreen: (screen: string) => void
-  showToast: (message: string, type: 'success' | 'error') => void
+  showToast: (msg: string, type: 'success' | 'error', icon: string) => void
 }
 
 export default function ContactScreen({ setScreen, showToast }: ContactScreenProps) {
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<string[]>(['👋 Hi! I&apos;m EcoBot. How can I help you today?'])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim() || !message.trim()) {
-      showToast('Please fill in all fields', 'error')
-      return
-    }
+  const contacts = [
+    { icon: '📞', label: 'Call Us', value: '+91 98765 43210', action: () => window.open('tel:+919876543210') },
+    { icon: '📧', label: 'Email Us', value: 'support@ecosort.ai', action: () => window.open('mailto:support@ecosort.ai') },
+    { icon: '💬', label: 'Live Chat', value: 'Available 9AM–6PM', action: () => setChatOpen(!chatOpen) },
+  ]
 
-    setIsSubmitting(true)
-    setTimeout(() => {
-      showToast('Message sent successfully! We&apos;ll get back to you soon.', 'success')
-      setEmail('')
-      setMessage('')
-      setIsSubmitting(false)
-      setScreen('dashboard')
-    }, 1500)
-  }
+  const faqs = [
+    { q: 'How does waste scanning work?', a: 'Upload a photo, AI analyzes it instantly, get disposal instructions.' },
+    { q: 'What if scan result is wrong?', a: 'Use manual selection below upload as reliable fallback.' },
+    { q: 'How to report a missed pickup?', a: 'Open Report screen, select Missed Pickup, submit.' },
+  ]
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen pb-24 screen-enter">
       {/* Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background px-6 pt-6 pb-8 border-b border-border">
-        <h1 className="text-2xl font-bold text-foreground">Contact Us</h1>
-        <p className="text-sm text-muted-foreground">We&apos;d love to hear from you</p>
+      <div className="glass border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-40">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <button onClick={() => setScreen('dashboard')} className="text-[#6EE7B7]">← Back</button>
+          <h1 className="font-heading font-bold text-[#F0FDF4]">Contact Support</h1>
+          <div className="w-6" />
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="px-6 py-8">
-        {/* Info Cards */}
-        <div className="space-y-3 mb-8">
-          <div className="bg-card rounded-2xl p-4 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Email</p>
-            <p className="font-semibold text-foreground">support@ecosort.io</p>
+      <div className="px-4 py-6 space-y-6">
+        {/* Contact Cards */}
+        <div className="grid grid-cols-3 gap-2">
+          {contacts.map((contact, i) => (
+            <button
+              key={i}
+              onClick={contact.action}
+              className="glass rounded-xl p-3 text-center hover:border-[#22C55E] hover:shadow-[0_0_16px_rgba(34,197,94,0.4)] transition-all"
+            >
+              <div className="text-2xl mb-1">{contact.icon}</div>
+              <p className="text-[#F0FDF4] font-semibold text-xs">{contact.label}</p>
+              <p className="text-[#6EE7B7] text-xs mt-1 line-clamp-2">{contact.value}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* Chat UI */}
+        {chatOpen && (
+          <div className="glass rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🤖</span>
+                <span className="font-semibold text-[#F0FDF4]">EcoBot</span>
+                <span className="w-2 h-2 bg-[#22C55E] rounded-full glow-green-sm" />
+              </div>
+              <button onClick={() => setChatOpen(false)} className="text-[#6EE7B7]">✕</button>
+            </div>
+            
+            <div className="bg-[rgba(255,255,255,0.02)] rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+              {chatMessages.map((msg, i) => (
+                <p key={i} className="text-[#F0FDF4] text-sm">{msg}</p>
+              ))}
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {['Scan Help', 'Report Issue', 'Pickup Info'].map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setChatMessages([...chatMessages, `You: ${opt}`, opt === 'Scan Help' ? 'Upload photos, AI detects instantly! 🤖' : opt === 'Report Issue' ? 'Use Report screen, fill form, submit. ✅' : 'Mon-Sat 7AM-10AM in your area. ♻️'])}
+                  className="px-2 py-1 glass rounded-full text-xs text-[#6EE7B7] hover:text-[#22C55E]"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="bg-card rounded-2xl p-4 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Response Time</p>
-            <p className="font-semibold text-foreground">Usually within 24 hours</p>
+        )}
+
+        {/* FAQ */}
+        <div>
+          <p className="section-label mb-3">Frequently Asked</p>
+          <div className="space-y-2">
+            {faqs.map((faq, i) => (
+              <details key={i} className="glass rounded-lg p-4 group">
+                <summary className="font-semibold text-[#F0FDF4] cursor-pointer">
+                  {faq.q}
+                </summary>
+                <p className="text-[#6EE7B7] text-sm mt-3">{faq.a}</p>
+              </details>
+            ))}
           </div>
         </div>
 
-        {/* Contact Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Your Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
+        {/* Social */}
+        <div>
+          <p className="section-label mb-3">Follow our mission 🌍</p>
+          <div className="flex gap-2">
+            {[{ icon: '𝕏', url: 'https://twitter.com' }, { icon: '📷', url: 'https://instagram.com' }, { icon: '💼', url: 'https://linkedin.com' }, { icon: '▶️', url: 'https://youtube.com' }].map((social, i) => (
+              <button
+                key={i}
+                onClick={() => window.open(social.url)}
+                className="glass rounded-lg p-3 flex-1 hover:border-[#22C55E]"
+              >
+                {social.icon}
+              </button>
+            ))}
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Message
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Tell us what you think..."
-              rows={5}
-              className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all hover:shadow-lg active:scale-95 disabled:opacity-50"
-          >
-            <Send className="w-5 h-5" />
-            {isSubmitting ? 'Sending...' : 'Send Message'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setScreen('dashboard')}
-            className="w-full px-6 py-3 bg-card border border-border text-foreground rounded-2xl font-semibold transition-all"
-          >
-            Back to Dashboard
-          </button>
-        </form>
+        </div>
       </div>
 
       <BottomNav currentScreen="contact" setScreen={setScreen} />
